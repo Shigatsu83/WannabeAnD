@@ -1,0 +1,47 @@
+services:
+  ctfd:
+    image: ctfd/ctfd
+    container_name: ctfd
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - CTF_NAME=Attack & Defense CTF
+    volumes:
+      - ./ctfd_data:/var/uploads
+
+  team1_machine:
+    build: ./vuln_machine
+    container_name: team1_machine
+    restart: always
+    networks:
+      attack_net:
+        ipv4_address: 10.0.0.2
+    ports:
+      - "10001:8080"  # Web service exposed on public port 10001
+      - "11001:22"  # SSH access on public port 11001
+
+  team2_machine:
+    build: ./vuln_machine
+    container_name: team2_machine
+    restart: always
+    networks:
+      attack_net:
+        ipv4_address: 10.0.0.3
+    ports:
+      - "10002:8080"  # Web service exposed on public port 10002
+      - "11002:22"  # SSH access on public port 11002
+
+  flag_submission:
+    build: ./flag_submission
+    container_name: flag_submission
+    restart: always
+    ports:
+      - "8080:8080"
+
+networks:
+  attack_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.0.0.0/24
