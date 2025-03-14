@@ -26,7 +26,6 @@ SSH_PORTS = {
 
 ADMIN_KEY = "supersecretadminkey"  # Change this for security
 
-import paramiko
 
 def get_flag_from_machine(team, flag_type):
     """Retrieve the correct flag from /home/ctf/user.txt or /root/root.txt via SSH."""
