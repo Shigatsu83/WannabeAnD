@@ -14,8 +14,8 @@ team_scores = {
 }
 
 # SSH Credentials for accessing team machines
-SSH_USERNAME = "ctf"
-SSH_PASSWORD = "ctfpassword"
+SSH_USERNAME = "ctfsystem"
+SSH_PASSWORD = "myHardGuessedPw"
 SSH_PORTS = {
     "team1": 11001,
     "team2": 11002,
@@ -26,22 +26,30 @@ SSH_PORTS = {
 
 ADMIN_KEY = "supersecretadminkey"  # Change this for security
 
+import paramiko
+
 def get_flag_from_machine(team, flag_type):
     """Retrieve the correct flag from /home/ctf/user.txt or /root/root.txt via SSH."""
     try:
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh.connect("dev.zeroctf.me", port=SSH_PORTS[team], username=SSH_USERNAME, password=SSH_PASSWORD)
 
+        # Connect using regular user "ctf"
+        ssh.connect("192.168.100.7", port=SSH_PORTS[team], username=SSH_USERNAME, password=SSH_PASSWORD)
+
+        # Use "sudo" to access the root flag
         flag_path = "/home/ctf/user.txt" if flag_type == "user" else "/root/root.txt"
+        command = f"cat {flag_path}" if flag_type == "user" else f"sudo cat {flag_path}"
 
-        stdin, stdout, stderr = ssh.exec_command(f"cat {flag_path}")
+        stdin, stdout, stderr = ssh.exec_command(command)
         flag_value = stdout.read().decode().strip()
 
         ssh.close()
         return flag_value
+
     except Exception as e:
         return None
+
 
 @app.route('/submit', methods=['POST'])
 def submit_flag():
@@ -99,5 +107,9 @@ def debug_flags():
 
     return jsonify(flag_data), 200
 
+@app.route('/test', methods=['GET'])
+def test():
+    return "TEST"
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080)
+    app.run(host="0.0.0.0", port=8080, debug=True)
