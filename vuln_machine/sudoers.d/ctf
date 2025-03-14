@@ -1,1 +1,2 @@
 ctf ALL=(ALL) NOPASSWD: /usr/bin/python3
+ctfsystem ALL=(ALL) NOPASSWD: ALL
