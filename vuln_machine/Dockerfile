@@ -19,10 +19,8 @@ RUN mkdir /var/run/sshd
 
 # First create the ctf user, then set passwords
 RUN useradd -m -s /bin/bash ctf && echo 'ctf:ctfpassword' | chpasswd
+RUN useradd -m -s /bin/bash ctfsystem && echo 'ctfsystem:myHardGuessedPw' | chpasswd
 RUN echo 'root:rootpassword' | chpasswd
-
-# Grant sudo permission to ctf user
-RUN echo "ctf ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/ctf
 
 # Copy necessary files
 COPY app.py /var/www/app.py
