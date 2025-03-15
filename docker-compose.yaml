@@ -36,7 +36,7 @@ services:
     environment:
       - LOCAL_API_KEY=90ujr4e4r4kljk;jl2343
       - ADMIN_KEY=hanyaadminyangtau
-    command: ["/bin/bash", "-c", "service cron start && python3 /app/flag_api.py"]
+    command: ["/bin/bash", "-c", "service cron start && python3 /app/app.py"]
 
 networks:
   attack_net:
