@@ -4,7 +4,9 @@ import os
 import time
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-FLAG_FILE = os.path.join(BASE_DIR, "flags.json")
+DATA_DIR = os.path.join(BASE_DIR, "data")
+FLAG_FILE = os.path.join(DATA_DIR, "flags.json")
+
 
 def generate_flag():
     """Generate a random hex-based flag."""

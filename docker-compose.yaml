@@ -1,15 +1,4 @@
 services:
-  ctfd:
-    image: ctfd/ctfd
-    container_name: ctfd
-    restart: always
-    ports:
-      - "8000:8000"
-    environment:
-      - CTF_NAME=Attack & Defense CTF
-    volumes:
-      - ./ctfd_data:/var/uploads
-
   # team1_machine:
   #   build: ./vuln_machine
   #   container_name: team1_machine

@@ -12,8 +12,18 @@ ADMIN_KEY = os.getenv("ADMIN_KEY", "my_super_admin_key")
 
 # Ensure `flags.json` and `submitted_flags.json` are loaded from the correct directory
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-FLAG_FILE = os.path.join(BASE_DIR, "flags.json")
-SUBMISSION_TRACKER = os.path.join(BASE_DIR, "submitted_flags.json")
+DATA_DIR = os.path.join(BASE_DIR, "data")
+os.makedirs(DATA_DIR, exist_ok=True)
+
+
+SCORE_FILE = os.path.join(DATA_DIR, "scores.json")
+SUBMISSION_TRACKER = os.path.join(DATA_DIR, "submitted_flags.json")
+FLAG_FILE = os.path.join(DATA_DIR, "flags.json")
+
+for file in [SCORE_FILE, SUBMISSION_TRACKER]:
+    if not os.path.exists(file):
+        with open(file, "w") as f:
+            json.dump({}, f)
 
 # Example API keys (should be stored securely)
 TEAM_API_KEYS = {
@@ -35,13 +45,13 @@ def save_json(filename, data):
     with open(filename, "w") as f:
         json.dump(data, f, indent=4)
 
-def load_submissions():
-    """Load submitted flags to track duplicate submissions."""
-    return load_json(SUBMISSION_TRACKER)
+# def load_submissions():
+#     """Load submitted flags to track duplicate submissions."""
+#     return load_json(SUBMISSION_TRACKER)
 
-def save_submissions(submissions):
-    """Save the updated submission tracker."""
-    save_json(SUBMISSION_TRACKER, submissions)
+# def save_submissions(submissions):
+#     """Save the updated submission tracker."""
+#     save_json(SUBMISSION_TRACKER, submissions)
 
 
 def load_flags():
@@ -105,7 +115,18 @@ def submit_flag():
             return jsonify({"message": "Invalid API key!", "status": "error"}), 403
 
         # Load flags
-        flags = load_flags()
+        flags = load_json(FLAG_FILE)
+        tick = flags.get("tick", 0)
+
+        #Load Score
+        scores = load_json(SCORE_FILE)
+        submitted_flags = load_json(SUBMISSION_TRACKER)
+
+        if tick not in submitted_flags:
+            submitted_flags[tick] = []
+
+        if f"{submitting_team}-{submitted_flag}" in submitted_flags[tick]:
+            return jsonify({"message": "Flag already submitted this tick", "status": "error"}), 400        
 
         # Check if `flags` is a dictionary
         if not isinstance(flags, dict):
@@ -123,12 +144,23 @@ def submit_flag():
                 raise TypeError(f"Invalid flag structure for {other_team}: {team_flags}")
 
             if other_team != submitting_team:
+                flag_type = None
                 if submitted_flag == team_flags.get("user_flag"):
-                    return jsonify({"message": f"User flag correct for {other_team}! +10 points", "status": "success"}), 200
+                    flag_type = "user"
                 elif submitted_flag == team_flags.get("root_flag"):
-                    return jsonify({"message": f"Root flag correct for {other_team}! +50 points", "status": "success"}), 200
+                    flag_type = "root"
 
-        return jsonify({"message": "Invalid flag! You must submit another team's flag.", "status": "error"}), 400
+                if flag_type:
+                    points = 10 if flag_type == "user" else 50
+                    scores[submitting_team] = scores.get(submitting_team, 0) + points
+                    save_json(SCORE_FILE, scores)
+
+                    submitted_flags[tick].append(f"{submitting_team}-{submitted_flag}")
+                    save_json(SUBMISSION_TRACKER, submitted_flags)
+
+                    return jsonify({"message": f"{submitting_team} gained {points} points!", "score": scores[submitting_team]})
+
+        return jsonify({"message": "Invalid flag! Submit another team's flag.", "status": "error"}), 400
 
     except Exception as e:
         error_trace = traceback.format_exc()
@@ -154,6 +186,12 @@ def get_all_flags():
         app.logger.error(f"[ERROR] Exception in /flags/all endpoint: {e}")
         app.logger.error(traceback.format_exc())
         return jsonify({"message": "Internal Server Error", "status": "error"}), 500
+    
+@app.route('/scoreboard', methods=['GET'])
+def get_scoreboard():
+    """Return the scoreboard."""
+    scores = load_json(SCORE_FILE)
+    return jsonify(scores)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080, debug=True)
