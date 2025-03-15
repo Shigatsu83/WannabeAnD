@@ -1,8 +1,8 @@
 from flask import Flask, request, jsonify
 import json
 import os
-import time
 import traceback
+import time
 
 app = Flask(__name__)
 
@@ -116,17 +116,17 @@ def submit_flag():
 
         # Load flags
         flags = load_json(FLAG_FILE)
-        tick = flags.get("tick", 0)
+        tick = str(flags.get("tick", 0))
 
         #Load Score
         scores = load_json(SCORE_FILE)
         submitted_flags = load_json(SUBMISSION_TRACKER)
 
-        if tick not in submitted_flags:
-            submitted_flags[tick] = []
+        if not isinstance(submitted_flags, dict):
+            submitted_flags = {}
 
-        if f"{submitting_team}-{submitted_flag}" in submitted_flags[tick]:
-            return jsonify({"message": "Flag already submitted this tick", "status": "error"}), 400        
+        if tick not in submitted_flags:
+            submitted_flags[tick] = []    
 
         # Check if `flags` is a dictionary
         if not isinstance(flags, dict):
@@ -136,8 +136,12 @@ def submit_flag():
         if "teams" not in flags:
             raise KeyError("Missing 'teams' key in flags.json")
 
-        teams_flags = flags["teams"]
+        flag_entry = f"{submitting_team}-{submitted_flag}"
+        if flag_entry in submitted_flags[tick]:
+            return jsonify({"message": "Flag already submitted this tick", "status": "error"}), 400
 
+
+        teams_flags = flags.get("teams", {})
         # Ensure that the submitting team is not checking its own flag
         for other_team, team_flags in teams_flags.items():
             if not isinstance(team_flags, dict):
@@ -155,7 +159,7 @@ def submit_flag():
                     scores[submitting_team] = scores.get(submitting_team, 0) + points
                     save_json(SCORE_FILE, scores)
 
-                    submitted_flags[tick].append(f"{submitting_team}-{submitted_flag}")
+                    submitted_flags[tick].append(flag_entry)
                     save_json(SUBMISSION_TRACKER, submitted_flags)
 
                     return jsonify({"message": f"{submitting_team} gained {points} points!", "score": scores[submitting_team]})
