@@ -16,9 +16,11 @@ def generate_flags():
 
     flags = {
         "tick": tick,  # Add tick value for synchronization
-        "team1": {"user_flag": generate_flag()[0], "root_flag": generate_flag()[1]},
-        "team2": {"user_flag": generate_flag()[0], "root_flag": generate_flag()[1]},
-        "team3": {"user_flag": generate_flag()[0], "root_flag": generate_flag()[1]}
+        "teams": {
+            "team1": {"user_flag": generate_flag()[0], "root_flag": generate_flag()[1]},
+            "team2": {"user_flag": generate_flag()[0], "root_flag": generate_flag()[1]},
+            "team3": {"user_flag": generate_flag()[0], "root_flag": generate_flag()[1]}
+        }
     }
 
     with open(FLAG_FILE, "w") as f:
