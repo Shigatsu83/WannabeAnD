@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 import json
 import os
 import time
+import traceback
 
 app = Flask(__name__)
 
@@ -72,12 +73,13 @@ def get_flags():
 
     flags = load_flags()
     tick = flags.get("tick", 0)  # Default to 0 if tick is missing
+    team_flags = flags["teams"]
 
-    if team in flags:
+    if team in team_flags:
         return jsonify({
             "tick": tick,
-            "user_flag": flags[team]["user_flag"],
-            "root_flag": flags[team]["root_flag"]
+            "user_flag": team_flags[team]["user_flag"],
+            "root_flag": team_flags[team]["root_flag"]
         })
     else:
         return jsonify({
@@ -86,11 +88,9 @@ def get_flags():
             "root_flag": "Not found"
         })
 
-
-
 @app.route('/submit', methods=['POST'])
 def submit_flag():
-    """Validates a submitted flag with team authentication and prevents duplicate submissions."""
+    """Validates a submitted flag and ensures a team submits another team's flag."""
     try:
         api_key = request.form.get("api_key")
         submitted_flag = request.form.get("flag")
@@ -99,40 +99,41 @@ def submit_flag():
             return jsonify({"message": "Missing API key or flag", "status": "error"}), 400
 
         # Identify the team based on the API key
-        team = next((t for t, key in TEAM_API_KEYS.items() if key == api_key), None)
+        submitting_team = next((t for t, key in TEAM_API_KEYS.items() if key == api_key), None)
 
-        if not team:
+        if not submitting_team:
             return jsonify({"message": "Invalid API key!", "status": "error"}), 403
 
-        # Load flags and previous submissions
+        # Load flags
         flags = load_flags()
-        submissions = load_submissions()
 
-        # Get the current tick (round), assuming a new tick occurs every 5 minutes
-        current_tick = int(time.time() // 180)  # Every 180 seconds = 3 Minutes
+        # Check if `flags` is a dictionary
+        if not isinstance(flags, dict):
+            raise TypeError(f"Invalid flags format: Expected dict, got {type(flags)}")
 
-        # Prevent duplicate flag submission in the same tick
-        if team in submissions and submitted_flag in submissions[team] and submissions[team][submitted_flag] == current_tick:
-            return jsonify({"message": "Flag already submitted in this tick!", "status": "error"}), 400
+        # Ensure `flags.json` contains "teams"
+        if "teams" not in flags:
+            raise KeyError("Missing 'teams' key in flags.json")
 
-        # Prevent self-submission: The team must submit another team's flag
-        for other_team, team_flags in flags.items():
-            if other_team != team:  # Ensure the submitted flag is from another team
+        teams_flags = flags["teams"]
+
+        # Ensure that the submitting team is not checking its own flag
+        for other_team, team_flags in teams_flags.items():
+            if not isinstance(team_flags, dict):
+                raise TypeError(f"Invalid flag structure for {other_team}: {team_flags}")
+
+            if other_team != submitting_team:
                 if submitted_flag == team_flags.get("user_flag"):
-                    submissions.setdefault(team, {})[submitted_flag] = current_tick
-                    save_submissions(submissions)
                     return jsonify({"message": f"User flag correct for {other_team}! +10 points", "status": "success"}), 200
                 elif submitted_flag == team_flags.get("root_flag"):
-                    submissions.setdefault(team, {})[submitted_flag] = current_tick
-                    save_submissions(submissions)
                     return jsonify({"message": f"Root flag correct for {other_team}! +50 points", "status": "success"}), 200
 
-        return jsonify({"message": "Invalid flag or self-submission not allowed!", "status": "error"}), 400
+        return jsonify({"message": "Invalid flag! You must submit another team's flag.", "status": "error"}), 400
 
     except Exception as e:
-        app.logger.error(f"[ERROR] Exception in /submit endpoint: {e}")
-        return jsonify({"message": "Internal Server Error", "status": "error"}), 500
-    
+        error_trace = traceback.format_exc()
+        app.logger.error(f"[ERROR] Exception in /submit endpoint: {e}\n{error_trace}")
+        return jsonify({"message": "Internal Server Error", "error": str(e), "traceback": error_trace}), 500
 
 @app.route('/flags/all', methods=['POST'])
 def get_all_flags():
