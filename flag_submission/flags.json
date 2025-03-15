@@ -1,0 +1,15 @@
+{
+    "tick": 9677953,
+    "team1": {
+        "user_flag": "user{ff9f11f65b09267f}",
+        "root_flag": "root{7c51cf72930536fd}"
+    },
+    "team2": {
+        "user_flag": "user{46954679a7d4aa6f}",
+        "root_flag": "root{1d92770c6a9b2aa6}"
+    },
+    "team3": {
+        "user_flag": "user{b7278d34c61bc36f}",
+        "root_flag": "root{f85ec767a56b7d42}"
+    }
+}
