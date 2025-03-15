@@ -1,0 +1,1 @@
+*/3 * * * * /usr/bin/python3 /app/flag_generator.py >> /var/log/cron.log 2>&1
