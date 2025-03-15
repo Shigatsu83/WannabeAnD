@@ -1,18 +1,25 @@
-# Use a lightweight Python image
 FROM python:3.10
 
-# Set the working directory inside the container
+# Set the working directory
 WORKDIR /app
 
-# Copy the flag submission API code into the container
-COPY flag_submission.py /app/flag_submission.py
-COPY requirements.txt /app/requirements.txt
-
 # Install dependencies
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Expose the API port
-EXPOSE 8080
+# Install cron
+RUN apt-get update && apt-get install -y cron
 
-# Run the Flask API
-CMD ["python", "flag_submission.py"]
+# Copy application files
+COPY . .
+
+# Copy crontab file to the correct location
+COPY crontab.txt /etc/cron.d/flag_cron
+
+# Set permissions and apply the crontab
+RUN chmod 0644 /etc/cron.d/flag_cron
+RUN crontab /etc/cron.d/flag_cron
+
+# Start cron and run the app
+CMD service cron start && python3 flag_api.py
+
