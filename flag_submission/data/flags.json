@@ -1,17 +1,17 @@
 {
-    "tick": 9678071,
+    "tick": 9678544,
     "teams": {
         "team1": {
-            "user_flag": "user{d08234894013cfec}",
-            "root_flag": "root{ac3b2a2af59021e0}"
+            "user_flag": "user{61d33ca1bdc21110}",
+            "root_flag": "root{39f6e947ab495f46}"
         },
         "team2": {
-            "user_flag": "user{49ecbf60a71159ba}",
-            "root_flag": "root{48eedc3dcd765d85}"
+            "user_flag": "user{60730bd110c8df3}",
+            "root_flag": "root{e73316674e5ac57e}"
         },
         "team3": {
-            "user_flag": "user{311ccb700fe47efc}",
-            "root_flag": "root{86648c351b964a4d}"
+            "user_flag": "user{4fdd9de2033fa67f}",
+            "root_flag": "root{f752bc9183b68796}"
         }
     }
 }

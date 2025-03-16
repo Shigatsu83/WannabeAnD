@@ -36,7 +36,21 @@ services:
     environment:
       - LOCAL_API_KEY=90ujr4e4r4kljk;jl2343
       - ADMIN_KEY=hanyaadminyangtau
+      - BEARER=my_super_secure_admin_key
     command: ["/bin/bash", "-c", "service cron start && python3 /app/app.py"]
+
+  scoreboard:
+    build: ./scoreboard/scoreboardui
+    container_name: scoreboard
+    ports:
+      - "80:3000"
+    restart: always
+    environment:
+      - REACT_APP_API_URL=http://192.168.100.7:8080
+      - REACT_APP_ADMIN_SECRET=my_super_secure_secret
+      - REACT_APP_ADMIN_PASSWORD=password123
+    depends_on:
+      - flag_submission
 
 networks:
   attack_net:

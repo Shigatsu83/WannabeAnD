@@ -3,8 +3,10 @@ import json
 import os
 import traceback
 import time
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app, origins=["http://192.168.100.7"])
 
 # Load API keys from environment variables
 LOCAL_API_KEY = os.getenv("LOCAL_API_KEY", "default_local_key")
@@ -13,24 +15,19 @@ ADMIN_KEY = os.getenv("ADMIN_KEY", "my_super_admin_key")
 # Ensure `flags.json` and `submitted_flags.json` are loaded from the correct directory
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
+CONF_DIR = os.path.join(BASE_DIR, "config")
 os.makedirs(DATA_DIR, exist_ok=True)
 
 
 SCORE_FILE = os.path.join(DATA_DIR, "scores.json")
 SUBMISSION_TRACKER = os.path.join(DATA_DIR, "submitted_flags.json")
 FLAG_FILE = os.path.join(DATA_DIR, "flags.json")
+CONFIG_FILE = os.path.join(CONF_DIR, "config.json")
 
 for file in [SCORE_FILE, SUBMISSION_TRACKER]:
     if not os.path.exists(file):
         with open(file, "w") as f:
             json.dump({}, f)
-
-# Example API keys (should be stored securely)
-TEAM_API_KEYS = {
-    "team1": "team1_secret_key",
-    "team2": "team2_secret_key",
-    "team3": "team3_secret_key"
-}
 
 def load_json(filename):
     """Load JSON data from a file."""
@@ -44,6 +41,19 @@ def save_json(filename, data):
     """Save JSON data to a file."""
     with open(filename, "w") as f:
         json.dump(data, f, indent=4)
+
+def load_config():
+    """Load configuration settings from JSON."""
+    try:
+        with open(CONFIG_FILE, "r") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+    
+# Configuration
+CONFIG = load_config()
+TEAM_API_KEYS = {team: details["api_key"] for team, details in CONFIG.get("teams", {}).items()}
+NUM_TEAMS = CONFIG.get("num_teams", 5)
 
 # def load_submissions():
 #     """Load submitted flags to track duplicate submissions."""
@@ -108,9 +118,8 @@ def submit_flag():
         if not api_key or not submitted_flag:
             return jsonify({"message": "Missing API key or flag", "status": "error"}), 400
 
-        # Identify the team based on the API key
+        # Identify the submitting team dynamically
         submitting_team = next((t for t, key in TEAM_API_KEYS.items() if key == api_key), None)
-
         if not submitting_team:
             return jsonify({"message": "Invalid API key!", "status": "error"}), 403
 
@@ -196,6 +205,43 @@ def get_scoreboard():
     """Return the scoreboard."""
     scores = load_json(SCORE_FILE)
     return jsonify(scores)
+
+@app.route('/update_config', methods=['POST'])
+def update_config():
+    """Allows updating the participant configuration from the UI (Admin only)."""
+    try:
+        auth_key = request.headers.get("Authorization")
+        if auth_key != os.getenv("BEARER"):
+            return jsonify({"message": "Unauthorized"}), 403
+
+        data = request.json
+        if not isinstance(data, dict) or "num_teams" not in data or "teams" not in data:
+            return jsonify({"message": "Invalid config format"}), 400
+
+        save_json(CONFIG_FILE, data)
+
+        global CONFIG, TEAM_API_KEYS, NUM_TEAMS
+        CONFIG = load_config()
+        TEAM_API_KEYS = {team: details["api_key"] for team, details in CONFIG.get("teams", {}).items()}
+        NUM_TEAMS = CONFIG.get("num_teams", 5)
+
+        return jsonify({"message": "Configuration updated successfully!"})
+    
+    except Exception as e:
+        return jsonify({"message": "Internal Server Error", "error": str(e)}), 500
+    
+@app.route('/config', methods=['GET'])
+def get_config():
+    """Returns the current participant configuration."""
+    try:
+        auth_key = request.headers.get("Authorization")
+        if auth_key != os.getenv("BEARER"):
+            return jsonify({"message": "Unauthorized"}), 403
+        return jsonify(load_config())
+    except Exception as e:
+        return jsonify({"message": "Internal Server Error"})
+
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080, debug=True)

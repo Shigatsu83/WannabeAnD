@@ -1,0 +1,14 @@
+{
+    "num_teams": 3,
+    "teams": {
+        "team1": {
+            "api_key": "1"
+        },
+        "team2": {
+            "api_key": "2"
+        },
+        "team3": {
+            "api_key": "3"
+        }
+    }
+}
